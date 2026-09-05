@@ -38,16 +38,12 @@ def verify_api_key(api_key_header: str = Security(api_key_header)):
     if api_key_header != expected_key:
         raise HTTPException(status_code=403, detail="Could not validate credentials")
 
-# ---------------------------------------------------------
-# Define app at the top level for Vercel Serverless
-# ---------------------------------------------------------
 app = FastAPI(
     title="AI Wildlife Animal Monitoring System API",
     description="Autonomous computer vision backend",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc",
-    dependencies=[Depends(verify_api_key)]
+    redoc_url="/redoc"
 )
 
 # CORS configuration
@@ -77,28 +73,24 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"error": "Internal Server Error", "detail": str(exc)},
     )
 
-# Mount all route routers
-app.include_router(detection_router)
-app.include_router(tracking_router)
-app.include_router(behavior_router)
-app.include_router(anomaly_router)
-app.include_router(history_router)
-app.include_router(reports_router)
-app.include_router(upload_router)
-app.include_router(live_router)
-app.include_router(health_router)
+# Mount all route routers with API Key security
+app.include_router(detection_router, dependencies=[Depends(verify_api_key)])
+app.include_router(tracking_router, dependencies=[Depends(verify_api_key)])
+app.include_router(behavior_router, dependencies=[Depends(verify_api_key)])
+app.include_router(anomaly_router, dependencies=[Depends(verify_api_key)])
+app.include_router(history_router, dependencies=[Depends(verify_api_key)])
+app.include_router(reports_router, dependencies=[Depends(verify_api_key)])
+app.include_router(upload_router, dependencies=[Depends(verify_api_key)])
+app.include_router(live_router, dependencies=[Depends(verify_api_key)])
+app.include_router(health_router, dependencies=[Depends(verify_api_key)])
 
-static_dir = os.path.abspath(os.path.join(os.path.dirname(os.path.dirname(__file__)), "static"))
-if os.path.exists(static_dir):
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
-
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 async def serve_dashboard():
-    index_file = os.path.join(static_dir, "index.html")
-    if os.path.exists(index_file):
-        with open(index_file, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
-    return HTMLResponse("<h1>Wildlife Monitoring API Running</h1><p>Visit <a href='/docs'>/docs</a> for API specifications.</p>")
+    return {
+        "status": "online",
+        "service": "Nextra Wildlife Monitoring API",
+        "docs_url": "/docs"
+    }
 
 @app.on_event("startup")
 async def on_startup():
