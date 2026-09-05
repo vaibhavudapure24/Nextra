@@ -35,16 +35,57 @@ with tab_img:
     if uploaded:
         image = Image.open(uploaded).convert("RGB")
         frame_bgr = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
-        detections, annotated = detector.detect(frame_bgr, draw=True, confidence_threshold=confidence)
+        import requests
+        import io
+        import os
+        from detection.postprocessing import DetectionResult
+        
+        # Send image to Backend API for detection
+        buffered = io.BytesIO()
+        image.save(buffered, format="JPEG")
+        
+        api_url = os.environ.get("API_URL", f"http://{cfg.api.host}:{cfg.api.port}")
+        api_key = getattr(cfg.api, "api_key", "wl_super_secret_key_123")
+        
+        try:
+            response = requests.post(
+                f"{api_url}/detect",
+                headers={"X-API-Key": api_key},
+                files={"file": ("image.jpg", buffered.getvalue(), "image/jpeg")},
+                data={"confidence_threshold": confidence}
+            )
+            response.raise_for_status()
+            api_data = response.json()
+            api_detections = api_data.get("detections", [])
+            
+            # Reconstruct DetectionResults for standard rendering
+            detections = []
+            for d in api_detections:
+                det = DetectionResult(
+                    detection_id=d["detection_id"], class_id=d["class_id"], species=d["species"],
+                    confidence=d["confidence"], x1=d["x1"], y1=d["y1"], x2=d["x2"], y2=d["y2"],
+                    center_x=d["center_x"], center_y=d["center_y"]
+                )
+                detections.append(det)
+                
+            if hasattr(detector, "draw"):
+                annotated = detector.draw(frame_bgr, detections)
+            else:
+                annotated = frame_bgr.copy()
+        except Exception as e:
+            st.error(f"Failed to connect to Backend API: {e}")
+            detections = []
+            annotated = frame_bgr.copy()
+            
         annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
 
         col1, col2 = st.columns(2)
         col1.image(image, caption="Original", use_container_width=True)
-        col2.image(annotated_rgb, caption=f"Detected: {len(detections)} animal(s)", use_container_width=True)
+        col2.image(annotated_rgb, caption=f"Detected: {len(detections)} animal(s) via API", use_container_width=True)
 
         if detections:
             st.subheader("Detections")
-            st.dataframe([d.as_dict() for d in detections], use_container_width=True)
+            st.dataframe([d.to_dict() for d in detections], use_container_width=True)
 
             if st.button("💾 Save Detections to Database", key="img_save_btn"):
                 try:
@@ -53,11 +94,11 @@ with tab_img:
 
                     with session_scope() as db:
                         for det in detections:
-                            pseudo_uid = f"{det.species}_{int(det.centroid[0] // 50)}_{int(det.centroid[1] // 50)}"
+                            pseudo_uid = f"{det.species}_{int(det.center_x // 50)}_{int(det.center_y // 50)}"
                             animal = get_or_create_animal(db, track_uid=pseudo_uid, species=det.species)
                             log_detection(
                                 db, animal, det.species, det.confidence, det.bbox,
-                                pos=det.centroid, camera_id="upload_test_image",
+                                pos=(det.center_x, det.center_y), camera_id="upload_test_image",
                             )
                     st.success(f"Saved {len(detections)} detection(s) to the database.")
                 except Exception as exc:
@@ -97,7 +138,12 @@ with tab_vid:
             ok, frame = cap.read()
             if not ok:
                 break
-            detections, annotated = detector.detect(frame, draw=True, confidence_threshold=confidence)
+            detections = detector.detect(frame, confidence_threshold=confidence)
+            if hasattr(detector, "draw"):
+                annotated = detector.draw(frame, detections)
+            else:
+                annotated = frame.copy()
+                
             detection_count_total += len(detections)
             species_seen.update(d.species for d in detections)
             frame_placeholder.image(
@@ -108,11 +154,11 @@ with tab_vid:
                 try:
                     with session_scope() as db:
                         for det in detections:
-                            pseudo_uid = f"{det.species}_{int(det.centroid[0] // 50)}_{int(det.centroid[1] // 50)}"
+                            pseudo_uid = f"{det.species}_{int(det.center_x // 50)}_{int(det.center_y // 50)}"
                             animal = get_or_create_animal(db, track_uid=pseudo_uid, species=det.species)
                             log_detection(
                                 db, animal, det.species, det.confidence, det.bbox,
-                                pos=det.centroid, camera_id="upload_test_video", frame_number=frame_idx,
+                                pos=(det.center_x, det.center_y), camera_id="upload_test_video", frame_number=frame_idx,
                             )
                 except Exception as exc:
                     if not db_error_shown:

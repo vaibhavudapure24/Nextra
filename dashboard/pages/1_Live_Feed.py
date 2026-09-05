@@ -37,6 +37,10 @@ with st.sidebar:
     source_label = st.selectbox("Camera Source", ["Video File", "Webcam (USB)", "Image Folder"])
     source_map = {"Video File": "video_file", "Webcam (USB)": "usb", "Image Folder": "image_folder"}
 
+    camera_index = 0
+    if source_label == "Webcam (USB)":
+        camera_index = st.number_input("Webcam Device Index (Linux usually 0 or 2)", min_value=0, max_value=10, value=0)
+
     tracker_type = st.selectbox("Tracking Algorithm", ["ByteTrack", "DeepSORT"], index=0)
     confidence = st.slider("Detection Confidence Threshold", 0.10, 0.95, 0.40, 0.05)
 
@@ -48,6 +52,12 @@ with st.sidebar:
 
     run = st.checkbox("▶ Start Live Surveillance Stream", value=False)
 
+# Initialize processors
+detector = get_detector(confidence_threshold=confidence)
+tracker = get_tracker(tracker_type.lower())
+behavior_classifier = BehaviorClassifier()
+anomaly_detector = AnomalyDetector()
+
 tab_stream, tab_cam = st.tabs(["🔴 Live Surveillance Stream", "📷 Browser Live Camera Input"])
 
 with tab_cam:
@@ -57,7 +67,7 @@ with tab_cam:
         bytes_data = cam_picture.getvalue()
         cv2_img = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
         dets = detector.detect(cv2_img, confidence_threshold=confidence)
-        annotated_cam = detector.render_detections(cv2_img, dets)
+        annotated_cam = detector.draw(cv2_img, dets)
         st.image(cv2.cvtColor(annotated_cam, cv2.COLOR_BGR2RGB), caption=f"Analyzed Frame ({len(dets)} objects detected)", use_container_width=True)
         if dets:
             st.success(f"Detected: {', '.join(f'{d.species} ({d.confidence*100:.1f}%)' for d in dets)}")
@@ -69,18 +79,15 @@ with tab_stream:
     metrics_placeholder = st.empty()
     alerts_placeholder = st.empty()
 
-# Initialize processors
-detector = get_detector(confidence_threshold=confidence)
-tracker = get_tracker(tracker_type.lower())
-behavior_classifier = BehaviorClassifier()
-anomaly_detector = AnomalyDetector()
-
 # Default fence polygon
 FENCE_POLYGON = [[60, 60], [1220, 60], [1220, 660], [60, 660]]
 
 if run:
     source_type = source_map[source_label]
     try:
+        if source_type == "usb":
+            cfg.video_sources.usb.device_index = camera_index
+            
         source = get_video_source(cfg, source_type=source_type)
         if source_type == "usb":
             source.open()
@@ -114,6 +121,9 @@ if run:
 
             # 4. Render Annotations
             annotated = frame.copy()
+            
+            # Draw raw detections instantly (so users see identification even before tracking locks)
+            annotated = detector.draw(annotated, detections, show_tracking_id=False)
 
             # Virtual fence boundary
             if show_fence:
@@ -150,7 +160,7 @@ if run:
                     behavior_type=beh_label,
                 )
 
-                label_tag = f"#{trk.tracking_id} {trk.species} [{beh_label}] | {trk.speed:.1f} m/s"
+                label_tag = f"#{trk.tracking_id} [{beh_label}] | {trk.speed:.1f} m/s"
                 box_color = (0, 0, 255) if not is_inside else color
                 annotated = draw_bounding_box(annotated, trk.bbox, label_tag, color=box_color)
 

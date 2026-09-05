@@ -9,6 +9,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.security import APIKeyHeader
+from fastapi import HTTPException, Security, Depends
 
 from utils.logger import get_logger
 from utils.config_loader import load_config
@@ -28,6 +30,14 @@ from api.routes import (
 logger = get_logger(__name__)
 
 
+api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+def verify_api_key(api_key_header: str = Security(api_key_header)):
+    cfg = load_config()
+    expected_key = getattr(cfg.api, "api_key", "wl_super_secret_key_123")
+    if api_key_header != expected_key:
+        raise HTTPException(status_code=403, detail="Could not validate credentials")
+
 def create_app() -> FastAPI:
     """FastAPI application factory."""
     app = FastAPI(
@@ -39,6 +49,7 @@ def create_app() -> FastAPI:
         version="1.0.0",
         docs_url="/docs",
         redoc_url="/redoc",
+        dependencies=[Depends(verify_api_key)]
     )
 
     # CORS configuration
