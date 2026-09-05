@@ -14,7 +14,7 @@ plotly==5.23.0
 seaborn==0.13.2
 
 # ---- Computer Vision / AI ----
-opencv-python==4.10.0.84
+opencv-python-headless==4.10.0.84
 ultralytics==8.3.0          # YOLO11 + YOLOv8
 torch==2.4.0
 torchvision==0.19.0

@@ -18,10 +18,6 @@ import subprocess
 import time
 from typing import Optional
 
-# Expose FastAPI app at the root level for Vercel serverless deployments
-import api.main
-app = api.main.app
-
 import cv2
 import numpy as np
 
