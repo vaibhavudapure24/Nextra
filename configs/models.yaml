@@ -1,0 +1,86 @@
+detection:
+  yolo11:
+    weights: "yolo11n.pt"
+    conf: 0.40
+    iou: 0.50
+    input_size: 640
+    device: "auto"
+  yolov8:
+    weights: "yolov8n.pt"
+    conf: 0.40
+    iou: 0.50
+    input_size: 640
+    device: "auto"
+  wildlife_custom:
+    weights: "models/detection/wildlife.pt"
+    conf: 0.40
+    iou: 0.50
+    input_size: 640
+    device: "auto"
+
+tracking:
+  default: "bytetrack"
+  bytetrack:
+    track_thresh: 0.45
+    match_thresh: 0.80
+    track_buffer: 60
+  deepsort:
+    max_age: 70
+    n_init: 3
+    nn_budget: 100
+    metric: "cosine"
+
+behavior:
+  active_model: "lstm" # lstm | transformer | rule_based
+  lstm:
+    weights: "models/behavior/lstm_behavior.pt"
+    input_dim: 12
+    hidden_dim: 128
+    num_layers: 2
+    num_classes: 11
+  transformer:
+    weights: "models/behavior/transformer_behavior.pt"
+    input_dim: 12
+    d_model: 64
+    nhead: 4
+    num_layers: 3
+    num_classes: 11
+  classes:
+    - eating
+    - sleeping
+    - walking
+    - running
+    - resting
+    - playing
+    - aggression
+    - stress
+    - limping
+    - injury
+    - social_interaction
+
+anomaly:
+  methods:
+    - isolation_forest
+    - one_class_svm
+    - autoencoder
+  default_method: "isolation_forest"
+  models:
+    isolation_forest:
+      weights: "models/anomaly/isolation_forest.joblib"
+      contamination: 0.05
+    one_class_svm:
+      weights: "models/anomaly/one_class_svm.joblib"
+      nu: 0.05
+    autoencoder:
+      weights: "models/anomaly/autoencoder.pt"
+      latent_dim: 8
+      reconstruction_threshold: 0.15
+
+health:
+  injury_model: "models/health/injury_detector.pt"
+  disease_classifier: "models/health/disease_classifier.pt"
+  stress_estimator: "models/health/stress_model.pt"
+
+reid:
+  embedding_model: "models/classification/reid_embedding.pt"
+  embedding_dim: 512

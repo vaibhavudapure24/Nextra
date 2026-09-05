@@ -1,0 +1,37 @@
+# ==============================================================================
+# Species mapping
+# Maps a detection model's raw class id/name to a friendly display species name.
+# - The stock COCO-pretrained yolo11n.pt / yolov8n.pt only knows generic classes
+#   (bird, cat, dog, horse, sheep, cow, elephant, bear, zebra, giraffe).
+# - For real wildlife species (tiger, leopard, deer, wolf, etc.) you must train
+#   a custom model on your own labeled dataset (see datasets/README.md and
+#   training/train_yolo.py) and add the resulting class names below.
+# ==============================================================================
+
+coco_pretrained:
+  14: "bird"
+  15: "cat"
+  16: "dog"
+  17: "horse"
+  18: "sheep"
+  19: "cow"
+  20: "elephant"
+  21: "bear"
+  22: "zebra"
+  23: "giraffe"
+
+custom_wildlife:
+  # Populated automatically after training a custom model with
+  # training/train_yolo.py, based on your dataset's data.yaml `names` list.
+  # Example:
+  # 0: "tiger"
+  # 1: "leopard"
+  # 2: "deer"
+  # 3: "wild_boar"
+  # 4: "wolf"
+
+species_metadata:
+  # Optional per-species behavior/health tuning used by health/health_estimator.py
+  default:
+    avg_speed_mps: 1.2
+    rest_ratio_expected: 0.5

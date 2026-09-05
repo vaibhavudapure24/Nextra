@@ -1,0 +1,68 @@
+# ==============================================================================
+# AI Wildlife Monitoring System - Docker Compose
+#
+# Quick start (just the database, run the dashboard locally as you have been):
+#     docker compose up -d postgres
+#     python -m database.init_db
+#     streamlit run dashboard/app.py
+#
+# Full stack (database + dashboard both in Docker):
+#     docker compose up -d
+#     -> dashboard at http://localhost:8501
+#
+# Note: the FastAPI backend (api/main.py) isn't built yet, so there's no
+# "api" service here. The Live Feed page's webcam option will not see your
+# host's camera when the dashboard runs inside a container unless you add a
+# device mapping (Linux hosts only, see commented "devices" block below) —
+# Video File, Image Folder, Upload & Test, and Analytics all work fine as-is.
+# ==============================================================================
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: wildlife_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: wildlife_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wildlife_dashboard
+    restart: unless-stopped
+    command: ["streamlit", "run", "dashboard/app.py", "--server.address=0.0.0.0", "--server.port=8501"]
+    environment:
+      DATABASE__HOST: postgres
+      DATABASE__PORT: "5432"
+      DATABASE__NAME: wildlife_db
+      DATABASE__USER: postgres
+      DATABASE__PASSWORD: postgres
+      DETECTION__DEVICE: cpu
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./models:/app/models
+      - ./outputs:/app/outputs
+      - ./datasets:/app/datasets
+      - ./configs:/app/configs
+      - ./runs:/app/runs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # devices:
+    #   - "/dev/video0:/dev/video0"   # uncomment on Linux to pass through a USB webcam
+
+volumes:
+  postgres_data:

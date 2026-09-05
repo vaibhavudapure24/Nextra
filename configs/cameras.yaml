@@ -1,0 +1,60 @@
+cameras:
+  - id: "cam_main_enclosure"
+    name: "North Enclosure - Main Camera"
+    type: "video_file" # Change to rtsp / usb / ip_camera in production
+    url: "datasets/sample_videos/sample.mp4"
+    fps: 30
+    resolution: [1280, 720]
+    gps_lat: -1.286389
+    gps_lon: 36.817223
+    gps_alt: 1680.0
+    night_vision: false
+    enclosure_zone:
+      name: "North Sanctuary Perimeter"
+      polygon:
+        - [50, 50]
+        - [1230, 50]
+        - [1230, 670]
+        - [50, 670]
+
+  - id: "cam_waterhole_rtsp"
+    name: "Waterhole Observation Post"
+    type: "rtsp"
+    url: "rtsp://admin:wildlife2026@192.168.1.101:554/live"
+    fps: 25
+    resolution: [1920, 1080]
+    gps_lat: -1.287100
+    gps_lon: 36.818500
+    gps_alt: 1675.0
+    night_vision: true
+    enclosure_zone:
+      name: "Waterhole Reserve"
+      polygon:
+        - [100, 100]
+        - [1820, 100]
+        - [1820, 980]
+        - [100, 980]
+
+  - id: "cam_drone_scout"
+    name: "Surveillance Drone - Alpha 1"
+    type: "drone"
+    url: "rtsp://192.168.1.150:8554/drone_stream"
+    telemetry_port: 14550 # MAVLink UDP port
+    fps: 30
+    resolution: [1920, 1080]
+    gps_lat: -1.285500
+    gps_lon: 36.816000
+    gps_alt: 1750.0
+    night_vision: false
+
+  - id: "cam_thermal_fence"
+    name: "Perimeter Thermal Boundary"
+    type: "thermal"
+    url: "rtsp://admin:thermal2026@192.168.1.105:554/thermal"
+    fps: 15
+    resolution: [640, 512]
+    palette: "ironbow"
+    temperature_range: [-20.0, 150.0]
+    gps_lat: -1.288000
+    gps_lon: 36.815000
+    gps_alt: 1685.0

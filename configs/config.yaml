@@ -1,0 +1,166 @@
+# ==============================================================================
+# AI Wildlife Animal Monitoring System - Main Configuration
+# All modules read from this file via utils.config_loader.load_config()
+# Override any value with an environment variable of the same path using
+# double-underscore separators, e.g. DATABASE__PASSWORD, DETECTION__DEVICE
+# ==============================================================================
+
+project:
+  name: "AI Wildlife Monitoring System"
+  version: "1.0.0"
+  environment: "development"          # development | production
+
+detection:
+  model_type: "yolo11"                # yolo11 | yolov8
+  model_path: "models/yolo11n.pt"     # ultralytics auto-downloads if not present locally
+  confidence_threshold: 0.45
+  iou_threshold: 0.45
+  device: "cuda"                      # cuda | cpu | mps
+  half_precision: true                # FP16 inference on CUDA
+  classes: null                       # null = all classes, or a list like [0, 1, 2]
+  species_map_path: "configs/species_map.yaml"
+
+training:
+  base_model: "yolo11n.pt"            # starting checkpoint to fine-tune from (n/s/m/l/x sizes available)
+  data_yaml: "datasets/wildlife_dataset/data.yaml"
+  epochs: 100
+  imgsz: 640
+  batch: 16                           # -1 = auto batch size (fits to available GPU memory)
+  patience: 30                        # early stopping patience (epochs with no val improvement)
+  device: "cuda"                      # cuda | cpu | 0 | 0,1 (multi-GPU) | mps
+  workers: 8
+  project_dir: "outputs/training_runs"
+  run_name: "wildlife_yolo"
+  train_val_test_split: [0.8, 0.1, 0.1]
+  seed: 42
+
+tracking:
+  tracker_type: "bytetrack"           # bytetrack | deepsort
+  bytetrack:
+    track_thresh: 0.5
+    track_buffer: 60
+    match_thresh: 0.8
+    frame_rate: 30
+  deepsort:
+    max_age: 70
+    n_init: 3
+    max_iou_distance: 0.7
+    max_cosine_distance: 0.3
+    nn_budget: 100
+  trail_length: 90                    # number of past centroids kept per track for the movement trail
+
+behavior:
+  model_type: "lstm"                  # lstm | transformer
+  sequence_length: 30                 # number of frames per behavior inference window
+  feature_dim: 8                      # per-frame motion feature vector size (see behavior/feature_extractor.py)
+  hidden_size: 128
+  num_layers: 2
+  num_heads: 4                        # used only when model_type == transformer
+  classes:
+    - eating
+    - sleeping
+    - walking
+    - running
+    - resting
+    - playing
+    - aggressive
+    - stressed
+    - social_interaction
+  weights_path: "models/behavior_lstm.pt"
+  min_confidence: 0.55
+
+anomaly:
+  method: "isolation_forest"          # autoencoder | isolation_forest | one_class_svm
+  contamination: 0.05
+  score_threshold: 0.7                # normalized 0-1 score above which an alert fires
+  autoencoder:
+    latent_dim: 16
+    hidden_dims: [64, 32]
+    reconstruction_threshold_percentile: 95
+  feature_window_seconds: 30
+
+health:
+  no_movement_alert_seconds: 120
+  continuous_running_alert_seconds: 60
+  limping_stride_variance_threshold: 0.35
+  isolation_radius_m: 15
+  isolation_min_seconds: 300
+
+database:
+  host: "localhost"
+  port: 5432
+  name: "wildlife_db"
+  user: "postgres"
+  password: "postgres"
+  pool_size: 10
+  echo: false
+
+alerts:
+  cooldown_seconds: 300               # minimum gap between repeated alerts of the same type/animal
+  severity_levels:
+    - info
+    - warning
+    - critical
+
+notifications:
+  email:
+    enabled: false
+    smtp_host: "smtp.gmail.com"
+    smtp_port: 587
+    sender: ""
+    app_password: ""
+    recipients: []
+  telegram:
+    enabled: false
+    bot_token: ""
+    chat_id: ""
+  sms:
+    enabled: false
+    twilio_account_sid: ""
+    twilio_auth_token: ""
+    twilio_from_number: ""
+    recipients: []
+
+video_sources:
+  default: "video_file"               # usb | rtsp | ip_camera | drone | video_file | image_folder
+  usb:
+    device_index: 0
+    width: 1280
+    height: 720
+    fps: 30
+  rtsp:
+    url: "rtsp://username:password@192.168.1.10:554/stream1"
+    reconnect_delay_seconds: 5
+  ip_camera:
+    url: "http://192.168.1.20:8080/video"
+  drone:
+    url: "rtsp://192.168.1.30:554/live"
+    reconnect_delay_seconds: 5
+  video_file:
+    path: "data/videos/sample_test.mp4"
+    loop: true
+  image_folder:
+    path: "datasets/sample_images/"
+    fps: 5
+
+reports:
+  output_dir: "outputs/reports"
+  daily_time: "23:55"
+  weekly_day: "sunday"
+  weekly_time: "23:55"
+  monthly_day: 1
+  monthly_time: "23:55"
+
+logging:
+  level: "INFO"
+  log_dir: "logs"
+  rotation: "10 MB"
+  retention: "30 days"
+
+api:
+  host: "0.0.0.0"
+  port: 8000
+
+dashboard:
+  refresh_interval_seconds: 3
+  theme: "dark"

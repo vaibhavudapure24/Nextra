@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WILDLIFE-AI // Autonomous Recon & Surveillance Command</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Google Fonts: Orbitron & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@500;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            tactical: {
+              900: '#06090e',
+              850: '#0a0f18',
+              800: '#0f172a',
+              700: '#1e293b',
+              border: '#1e3a5f',
+              cyan: '#06b6d4',
+              emerald: '#10b981',
+              amber: '#f59e0b',
+              crimson: '#ef4444',
+              radar: '#00ff66',
+            }
+          },
+          fontFamily: {
+            mono: ['"JetBrains Mono"', 'monospace'],
+            orbitron: ['"Orbitron"', 'sans-serif'],
+            sans: ['"Plus Jakarta Sans"', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #06090e;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(6, 182, 212, 0.08) 0%, transparent 60%),
+        linear-gradient(rgba(15, 23, 42, 0.5) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(15, 23, 42, 0.5) 1px, transparent 1px);
+      background-size: 100% 100%, 32px 32px, 32px 32px;
+      color: #e2e8f0;
+      overflow-x: hidden;
+    }
+
+    /* Glassmorphism tactical panels */
+    .tactical-glass {
+      background: rgba(10, 15, 24, 0.82);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(56, 189, 248, 0.18);
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.45);
+    }
+
+    .tactical-glass-active {
+      border-color: rgba(6, 182, 212, 0.6);
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.25);
+    }
+
+    /* Radar scan effect */
+    .radar-sweep-beam {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg, rgba(0, 255, 102, 0.35) 0deg, rgba(0, 255, 102, 0) 60deg);
+      animation: radar-sweep 4s linear infinite;
+      transform-origin: center center;
+    }
+
+    @keyframes radar-sweep {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Pulse animation */
+    @keyframes pulse-glow {
+      0%, 100% { opacity: 1; filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.8)); }
+      50% { opacity: 0.4; filter: drop-shadow(0 0 1px rgba(16, 185, 129, 0.2)); }
+    }
+    .pulse-radar { animation: pulse-glow 2s infinite ease-in-out; }
+
+    @keyframes alert-flash {
+      0%, 100% { border-color: rgba(239, 68, 68, 0.8); box-shadow: 0 0 25px rgba(239, 68, 68, 0.6); }
+      50% { border-color: rgba(239, 68, 68, 0.2); box-shadow: none; }
+    }
+    .alarm-active { animation: alert-flash 0.9s infinite ease-in-out; }
+
+    /* Scanline effect */
+    .scanlines {
+      background: linear-gradient(
+        rgba(18, 16, 16, 0) 50%, 
+        rgba(0, 0, 0, 0.25) 50%
+      ), linear-gradient(
+        90deg,
+        rgba(255, 0, 0, 0.03),
+        rgba(0, 255, 0, 0.01),
+        rgba(0, 0, 255, 0.03)
+      );
+      background-size: 100% 3px, 6px 100%;
+      pointer-events: none;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: #0a0f18; }
+    ::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col font-sans selection:bg-cyan-500 selection:text-black">
+
+  <!-- TOP STATUS & TELEMETRY BAR -->
+  <header class="tactical-glass sticky top-0 z-50 border-b border-cyan-500/20 px-4 py-2.5 flex items-center justify-between">
+    <div class="flex items-center space-x-4">
+      <!-- Crest / Logo -->
+      <div class="flex items-center space-x-2.5">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+          <i class="fa-solid fa-shield-cat text-tactical-900 text-lg"></i>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <h1 class="font-orbitron font-bold text-base tracking-wider text-white">WILDLIFE<span class="text-cyan-400">AI</span></h1>
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-400 border border-cyan-500/30">C2 TACTICAL v2.4</span>
+          </div>
+          <p class="text-[11px] text-slate-400 font-mono tracking-tight">AUTONOMOUS SANCTUARY DEFENSE SYSTEM</p>
+        </div>
+      </div>
+
+      <!-- Pulse indicator -->
+      <div class="hidden lg:flex items-center space-x-2 pl-4 border-l border-slate-700/60">
+        <span class="relative flex h-3 w-3">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+        </span>
+        <span class="text-xs font-mono font-semibold text-emerald-400">RECON ACTIVE</span>
+      </div>
+    </div>
+
+    <!-- Central Hardware & Status Telemetry -->
+    <div class="hidden xl:flex items-center space-x-6 text-xs font-mono">
+      <div class="flex items-center space-x-2 bg-slate-900/80 px-3 py-1.5 rounded border border-slate-700/50">
+        <i class="fa-solid fa-microchip text-cyan-400"></i>
+        <span class="text-slate-400">COMPUTE:</span>
+        <span id="gpuNameBadge" class="text-emerald-400 font-bold">NVIDIA GTX 1650 (CUDA)</span>
+      </div>
+
+      <div class="flex items-center space-x-2 bg-slate-900/80 px-3 py-1.5 rounded border border-slate-700/50">
+        <i class="fa-solid fa-bolt text-amber-400"></i>
+        <span class="text-slate-400">INFERENCE:</span>
+        <span id="fpsCounter" class="text-cyan-300 font-bold">31.2 FPS</span>
+      </div>
+
+      <div class="flex items-center space-x-2 bg-slate-900/80 px-3 py-1.5 rounded border border-slate-700/50">
+        <i class="fa-solid fa-database text-emerald-400"></i>
+        <span class="text-slate-400">POSTGRES:</span>
+        <span id="dbStatus" class="text-emerald-400 font-bold">CONNECTED</span>
+      </div>
+    </div>
+
+    <!-- Right Controls: Audio, Time, Fullscreen -->
+    <div class="flex items-center space-x-3">
+      <!-- Audio Alarm Toggle -->
+      <button id="btnAudioToggle" onclick="toggleAudio()" class="px-2.5 py-1.5 rounded bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-cyan-400 border border-slate-600/50 text-xs font-mono flex items-center space-x-1.5 transition">
+        <i id="audioIcon" class="fa-solid fa-volume-high text-emerald-400"></i>
+        <span class="hidden sm:inline" id="audioLabel">AUDIO ON</span>
+      </button>
+
+      <!-- Simulated Alert Siren Trigger (Testing) -->
+      <button onclick="simulateTestBreach()" class="px-2.5 py-1.5 rounded bg-red-950/80 hover:bg-red-700/30 text-red-300 border border-red-500/40 text-xs font-mono flex items-center space-x-1.5 transition">
+        <i class="fa-solid fa-triangle-exclamation text-red-400 animate-pulse"></i>
+        <span class="hidden sm:inline">TEST BREACH</span>
+      </button>
+
+      <!-- Sanctuary UTC Clock -->
+      <div class="bg-tactical-850 px-3 py-1 rounded border border-cyan-500/30 text-right">
+        <div id="clockTime" class="font-orbitron text-xs font-bold text-cyan-300 tracking-wider">12:00:00 UTC</div>
+        <div class="text-[9px] text-slate-400 font-mono">SERENGETI SECTOR 04</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- LIVE EMERGENCY TICKER -->
+  <div id="alertBanner" class="bg-gradient-to-r from-red-950/90 via-slate-950 to-red-950/90 border-y border-red-500/30 px-4 py-1.5 flex items-center justify-between text-xs font-mono transition-all duration-300">
+    <div class="flex items-center space-x-3 overflow-hidden">
+      <span class="flex items-center space-x-1 text-red-400 font-bold uppercase tracking-wider animate-pulse">
+        <i class="fa-solid fa-radiation text-sm"></i>
+        <span>PERIMETER ADVISORY:</span>
+      </span>
+      <span id="tickerText" class="text-slate-300 truncate">
+        [FENCE-GATE-02] Active geo-fence boundary integrity verified. No critical intrusions detected in the last 60 seconds.
+      </span>
+    </div>
+    <div class="flex items-center space-x-2 pl-3">
+      <button onclick="acknowledgeAlerts()" class="text-[10px] bg-red-900/60 hover:bg-red-800 text-red-200 px-2 py-0.5 rounded border border-red-400/40 transition">
+        ACKNOWLEDGE
+      </button>
+    </div>
+  </div>
+
+  <!-- MAIN DASHBOARD CONTENT -->
+  <main class="flex-1 p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 max-w-[1920px] mx-auto w-full">
+
+    <!-- LEFT COLUMN: PRIMARY VIDEO VIEWPORT & DRONE CONTROLS (8 COLS) -->
+    <section class="lg:col-span-8 flex flex-col space-y-4">
+      
+      <!-- Video Viewport Header & Camera Selector -->
+      <div class="tactical-glass rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center space-x-2 overflow-x-auto pb-1 sm:pb-0">
+          <button onclick="switchCamera('drone')" id="tab-drone" class="cam-tab px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center space-x-2 bg-cyan-600/30 text-cyan-300 border border-cyan-400/50 transition">
+            <i class="fa-solid fa-drone"></i>
+            <span>DRONE RECON (ALPHA)</span>
+            <span class="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+          </button>
+
+          <button onclick="switchCamera('north')" id="tab-north" class="cam-tab px-3 py-1.5 rounded-lg text-xs font-mono font-medium flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800/60 transition">
+            <i class="fa-solid fa-video"></i>
+            <span>CAM 01: NORTH FENCE</span>
+          </button>
+
+          <button onclick="switchCamera('waterhole')" id="tab-waterhole" class="cam-tab px-3 py-1.5 rounded-lg text-xs font-mono font-medium flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800/60 transition">
+            <i class="fa-solid fa-eye"></i>
+            <span>CAM 02: WATERHOLE IR</span>
+          </button>
+
+          <button onclick="switchCamera('east')" id="tab-east" class="cam-tab px-3 py-1.5 rounded-lg text-xs font-mono font-medium flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800/60 transition">
+            <i class="fa-solid fa-mountain-sun"></i>
+            <span>CAM 03: SAVANNAH</span>
+          </button>
+        </div>
+
+        <!-- Live Camera Toggle -->
+        <button onclick="toggleLiveCamera()" id="btnLiveCamera" class="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold font-mono text-xs flex items-center space-x-2 transition shadow-lg shadow-emerald-500/30">
+          <i id="liveCameraIcon" class="fa-solid fa-video"></i>
+          <span id="liveCameraLabel">TURN ON LIVE MONITORING (WEBCAM)</span>
+        </button>
+
+        <!-- Video Filter Toggles -->
+        <div class="flex items-center space-x-2 text-xs font-mono">
+          <button onclick="toggleThermal()" id="btnThermal" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:text-amber-400 border border-slate-700 transition flex items-center space-x-1">
+            <i class="fa-solid fa-fire-flame-curved"></i>
+            <span>THERMAL FLIR</span>
+          </button>
+
+          <button onclick="toggleNightVision()" id="btnNightVision" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:text-emerald-400 border border-slate-700 transition flex items-center space-x-1">
+            <i class="fa-solid fa-moon"></i>
+            <span>NIGHT VISION</span>
+          </button>
+
+          <button onclick="toggleFenceDraw()" id="btnFenceDraw" class="px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:text-cyan-400 border border-slate-700 transition flex items-center space-x-1">
+            <i class="fa-solid fa-draw-polygon"></i>
+            <span>EDIT FENCE</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- MAIN VIDEO CANVAS WRAPPER -->
+      <div id="videoContainer" class="tactical-glass relative rounded-xl overflow-hidden border border-cyan-500/30 aspect-[16/9] w-full bg-slate-950 flex items-center justify-center shadow-2xl">
+        <!-- Live Video & Overlay Canvas -->
+        <canvas id="surveillanceCanvas" width="1280" height="720" class="w-full h-full object-cover"></canvas>
+        <div class="scanlines absolute inset-0"></div>
+
+        <!-- AVIATION HUD OVERLAY (Visible on Drone Mode) -->
+        <div id="droneHudOverlay" class="absolute inset-0 pointer-events-none p-6 flex flex-col justify-between text-cyan-400 font-mono select-none">
+          <!-- Top HUD: Compass Tape -->
+          <div class="flex justify-between items-center text-xs">
+            <div class="flex items-center space-x-2 bg-slate-950/75 px-3 py-1 rounded border border-cyan-500/40">
+              <span class="text-slate-400">GPS:</span>
+              <span id="droneGps">1°17'08.2"S 36°48'57.6"E</span>
+            </div>
+
+            <!-- Compass heading -->
+            <div class="bg-slate-950/75 px-4 py-1 rounded border border-cyan-500/40 flex items-center space-x-2 font-bold text-sm">
+              <i class="fa-solid fa-compass text-emerald-400"></i>
+              <span id="droneHeading">042° NNE</span>
+            </div>
+
+            <div class="flex items-center space-x-2 bg-slate-950/75 px-3 py-1 rounded border border-cyan-500/40">
+              <span class="text-slate-400">BATT:</span>
+              <span id="droneBattery" class="text-emerald-400 font-bold"><i class="fa-solid fa-battery-three-quarters mr-1"></i>94%</span>
+            </div>
+          </div>
+
+          <!-- Middle HUD: Crosshair & Artificial Horizon Scale -->
+          <div class="flex justify-between items-center px-4">
+            <!-- Airspeed / Ground Speed Tape (Left) -->
+            <div class="bg-slate-950/80 p-2.5 rounded border border-cyan-500/30 text-center w-20">
+              <div class="text-[10px] text-slate-400">G-SPD</div>
+              <div id="droneSpeed" class="font-orbitron font-bold text-base text-white">8.4</div>
+              <div class="text-[9px] text-slate-400">M / S</div>
+            </div>
+
+            <!-- Center Reticle / Horizon Pitch Ladder -->
+            <div class="flex flex-col items-center justify-center opacity-80">
+              <div class="w-16 h-0.5 bg-cyan-400/80 mb-2"></div>
+              <div class="w-8 h-8 rounded-full border border-dashed border-cyan-400/60 flex items-center justify-center">
+                <div class="w-1.5 h-1.5 rounded-full bg-cyan-400"></div>
+              </div>
+              <div class="w-16 h-0.5 bg-cyan-400/80 mt-2"></div>
+              <div class="text-[10px] text-cyan-300/80 mt-1 font-mono tracking-widest">[ TARGET LOCK ACQUIRED ]</div>
+            </div>
+
+            <!-- Altitude Tape (Right) -->
+            <div class="bg-slate-950/80 p-2.5 rounded border border-cyan-500/30 text-center w-20">
+              <div class="text-[10px] text-slate-400">ALT AGL</div>
+              <div id="droneAlt" class="font-orbitron font-bold text-base text-white">72.5</div>
+              <div class="text-[9px] text-slate-400">METERS</div>
+            </div>
+          </div>
+
+          <!-- Bottom HUD: Active Telemetry & Target Ticker -->
+          <div class="flex justify-between items-end text-xs">
+            <div class="bg-slate-950/75 p-2 rounded border border-cyan-500/30 text-[11px]">
+              <div>GIMBAL PITCH: <span class="text-white font-bold">-45.0°</span></div>
+              <div>OPTICAL ZOOM: <span class="text-white font-bold">4.2x EO</span></div>
+            </div>
+
+            <!-- Target classification badge -->
+            <div class="bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 px-3 py-1 rounded text-center">
+              <span class="font-bold">HERD TRACKING IN PROGRESS</span>
+              <div class="text-[10px] text-emerald-400/80">3 SPECIES DETECTED IN FRAME</div>
+            </div>
+
+            <div class="bg-slate-950/75 p-2 rounded border border-cyan-500/30 text-[11px] text-right">
+              <div>FLIGHT MODE: <span class="text-cyan-300 font-bold">AUTO_PATROL</span></div>
+              <div>LINK QUALITY: <span class="text-emerald-400 font-bold">99.8% RSSI</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Video Control Bar Overlay (Bottom Center) -->
+        <div class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-slate-950/85 backdrop-blur-md px-4 py-2 rounded-xl border border-slate-700/60 flex items-center space-x-3 text-xs font-mono shadow-2xl z-20">
+          <button onclick="toggleStreamPlay()" id="btnPlayPause" class="text-slate-300 hover:text-cyan-400 transition" title="Pause / Resume">
+            <i id="playIcon" class="fa-solid fa-pause text-base"></i>
+          </button>
+
+          <div class="h-4 w-[1px] bg-slate-700"></div>
+
+          <button onclick="takeSnapshot()" class="text-slate-300 hover:text-cyan-400 transition flex items-center space-x-1" title="Capture Snapshot">
+            <i class="fa-solid fa-camera"></i>
+            <span class="hidden sm:inline">SNAPSHOT</span>
+          </button>
+
+          <button onclick="toggleRecording()" id="btnRecord" class="text-slate-300 hover:text-red-400 transition flex items-center space-x-1" title="Record Clip">
+            <i id="recDot" class="fa-solid fa-circle text-red-500 text-xs"></i>
+            <span id="recText" class="hidden sm:inline">REC</span>
+          </button>
+
+          <div class="h-4 w-[1px] bg-slate-700"></div>
+
+          <button onclick="toggleFullscreen()" class="text-slate-300 hover:text-cyan-400 transition" title="Toggle Fullscreen">
+            <i class="fa-solid fa-expand"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- INTERACTIVE CONTROLS & TELEMETRY ROW (Below Video) -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        
+        <!-- Drone Flight Command Sub-panel -->
+        <div class="tactical-glass rounded-xl p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-orbitron text-xs font-bold tracking-wider text-cyan-300 flex items-center space-x-1.5">
+              <i class="fa-solid fa-gamepad text-cyan-400"></i>
+              <span>FLIGHT CONTROLLER</span>
+            </h3>
+            <span class="text-[10px] text-slate-400 font-mono">MAVLINK 2.0</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 my-2">
+            <button onclick="setFlightMode('ORBIT')" class="px-2 py-1.5 bg-slate-800 hover:bg-cyan-950 text-slate-300 hover:text-cyan-300 border border-slate-700/80 rounded text-xs font-mono text-center transition">
+              <i class="fa-solid fa-rotate mr-1"></i>ORBIT HERD
+            </button>
+            <button onclick="setFlightMode('HOVER')" class="px-2 py-1.5 bg-slate-800 hover:bg-cyan-950 text-slate-300 hover:text-cyan-300 border border-slate-700/80 rounded text-xs font-mono text-center transition">
+              <i class="fa-solid fa-anchor mr-1"></i>HOVER HOLD
+            </button>
+            <button onclick="setFlightMode('PATROL')" class="px-2 py-1.5 bg-cyan-950/60 text-cyan-300 border border-cyan-500/40 rounded text-xs font-mono text-center transition">
+              <i class="fa-solid fa-route mr-1"></i>AUTO PATROL
+            </button>
+            <button onclick="setFlightMode('RTL')" class="px-2 py-1.5 bg-slate-800 hover:bg-red-950 text-slate-300 hover:text-red-300 border border-slate-700/80 rounded text-xs font-mono text-center transition">
+              <i class="fa-solid fa-house-chimney mr-1"></i>RETURN HOME
+            </button>
+          </div>
+
+          <div class="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-1 border-t border-slate-800">
+            <span>Altitude Override:</span>
+            <input type="range" min="30" max="120" value="75" class="w-24 accent-cyan-400" oninput="document.getElementById('droneAlt').innerText = this.value">
+          </div>
+        </div>
+
+        <!-- Real-time Herd Kinematics Metric Cards -->
+        <div class="tactical-glass rounded-xl p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="font-orbitron text-xs font-bold tracking-wider text-emerald-300 flex items-center space-x-1.5">
+              <i class="fa-solid fa-heart-pulse text-emerald-400"></i>
+              <span>HERD VITALS</span>
+            </h3>
+            <span class="text-[10px] text-emerald-400 font-mono">NOMINAL</span>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 my-1">
+            <div class="bg-slate-900/60 p-2.5 rounded border border-slate-800">
+              <div class="text-[10px] text-slate-400 font-mono">AVG VELOCITY</div>
+              <div class="font-orbitron text-lg font-bold text-white"><span id="avgSpeedVal">1.8</span> <span class="text-xs text-slate-400">m/s</span></div>
+              <div class="text-[9px] text-emerald-400 font-mono mt-0.5"><i class="fa-solid fa-arrow-trend-up mr-0.5"></i>Moderate Walk</div>
+            </div>
+
+            <div class="bg-slate-900/60 p-2.5 rounded border border-slate-800">
+              <div class="text-[10px] text-slate-400 font-mono">STRESS INDEX</div>
+              <div class="font-orbitron text-lg font-bold text-emerald-400">14%</div>
+              <div class="text-[9px] text-emerald-400 font-mono mt-0.5">Calm / Unperturbed</div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-1 border-t border-slate-800">
+            <span>BiLSTM Classification:</span>
+            <span class="text-cyan-300 font-bold">GRAZING (96.4%)</span>
+          </div>
+        </div>
+
+        <!-- Quick Report Export & Action Trigger -->
+        <div class="tactical-glass rounded-xl p-4 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="font-orbitron text-xs font-bold tracking-wider text-amber-300 flex items-center space-x-1.5">
+              <i class="fa-solid fa-file-shield text-amber-400"></i>
+              <span>CENSUS AUDIT</span>
+            </h3>
+            <span class="text-[10px] text-slate-400 font-mono">REPORTLAB</span>
+          </div>
+
+          <p class="text-xs text-slate-400 leading-snug my-1">
+            Compile automated wildlife count, perimeter security events, and gait diagnostics.
+          </p>
+
+          <div class="flex items-center space-x-2 pt-1 border-t border-slate-800">
+            <button onclick="downloadReport('pdf')" class="flex-1 py-1.5 px-3 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold font-mono rounded text-xs flex items-center justify-center space-x-1 transition shadow-lg shadow-cyan-500/20">
+              <i class="fa-solid fa-file-pdf mr-1"></i>
+              <span>GENERATE PDF</span>
+            </button>
+            <button onclick="downloadReport('csv')" class="py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-mono rounded text-xs border border-slate-600 transition" title="Export CSV Data">
+              <i class="fa-solid fa-file-csv"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+
+    <!-- RIGHT COLUMN: BIO-RADAR, ACTIVE TARGET DOSSIER & ANALYTICS (4 COLS) -->
+    <section class="lg:col-span-4 flex flex-col space-y-4">
+
+      <!-- TACTICAL 360-DEGREE RADAR SCANNER -->
+      <div class="tactical-glass rounded-xl p-4 flex flex-col items-center">
+        <div class="w-full flex items-center justify-between mb-2">
+          <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-satellite-dish text-emerald-400"></i>
+            <h2 class="font-orbitron text-xs font-bold tracking-wider text-white">TACTICAL BIO-RADAR</h2>
+          </div>
+          <span class="text-[10px] font-mono text-emerald-400 flex items-center space-x-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+            <span>RANGE: 500m</span>
+          </span>
+        </div>
+
+        <!-- Radar Canvas Box -->
+        <div class="relative w-64 h-64 my-2 flex items-center justify-center">
+          <canvas id="radarCanvas" width="256" height="256" class="rounded-full bg-slate-950/90 border border-emerald-500/30 shadow-[0_0_25px_rgba(16,185,129,0.15)]"></canvas>
+          <div class="radar-sweep-beam pointer-events-none"></div>
+
+          <!-- Radar center point -->
+          <div class="absolute w-2 h-2 rounded-full bg-emerald-400 shadow-md shadow-emerald-400 pointer-events-none"></div>
+        </div>
+
+        <div class="w-full grid grid-cols-3 text-center text-[10px] font-mono text-slate-400 pt-2 border-t border-slate-800/80">
+          <div>HERD: <span class="text-emerald-400 font-bold">18 BLIPS</span></div>
+          <div>ISOLATED: <span class="text-amber-400 font-bold">02 BLIPS</span></div>
+          <div>FENCE WARN: <span class="text-red-400 font-bold" id="radarBreachCount">00</span></div>
+        </div>
+      </div>
+
+      <!-- ACTIVE ANIMAL TARGET DOSSIER (Interactive Card) -->
+      <div class="tactical-glass rounded-xl p-4 flex-1 flex flex-col justify-between">
+        <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+          <div class="flex items-center space-x-2">
+            <div class="w-7 h-7 rounded bg-cyan-950 flex items-center justify-center border border-cyan-500/30 text-cyan-400">
+              <i class="fa-solid fa-fingerprint"></i>
+            </div>
+            <div>
+              <h3 class="font-orbitron text-xs font-bold text-white">SELECTED DOSSIER</h3>
+              <div class="text-[10px] text-cyan-400 font-mono" id="dossierTrackUid">TRK-104 (AFRICAN ELEPHANT)</div>
+            </div>
+          </div>
+          <span id="dossierStatusBadge" class="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-500/40 font-bold">HEALTHY</span>
+        </div>
+
+        <!-- Dossier Key Metrics Grid -->
+        <div class="grid grid-cols-2 gap-2.5 my-3 text-xs font-mono">
+          <div class="bg-slate-900/80 p-2 rounded border border-slate-800">
+            <div class="text-[9px] text-slate-400">RFID TAG</div>
+            <div id="dossierRfid" class="text-slate-200 font-bold truncate">RFID-982-A41</div>
+          </div>
+
+          <div class="bg-slate-900/80 p-2 rounded border border-slate-800">
+            <div class="text-[9px] text-slate-400">ESTIMATED AGE / SEX</div>
+            <div id="dossierAgeSex" class="text-slate-200 font-bold">Adult Male (12y)</div>
+          </div>
+
+          <div class="bg-slate-900/80 p-2 rounded border border-slate-800">
+            <div class="text-[9px] text-slate-400">VITALITY / GAIT</div>
+            <div id="dossierGait" class="text-emerald-400 font-bold">96% Symmetrical</div>
+          </div>
+
+          <div class="bg-slate-900/80 p-2 rounded border border-slate-800">
+            <div class="text-[9px] text-slate-400">DISTANCE TO FENCE</div>
+            <div id="dossierFenceDist" class="text-cyan-300 font-bold">142.8 Meters</div>
+          </div>
+        </div>
+
+        <!-- Kinematic Mini Chart -->
+        <div class="mb-2">
+          <div class="flex justify-between text-[10px] font-mono text-slate-400 mb-1">
+            <span>VELOCITY HISTORY (LAST 30 SEC)</span>
+            <span class="text-cyan-400">MAX: 3.8 m/s</span>
+          </div>
+          <div class="h-20 w-full">
+            <canvas id="kinematicChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Full Dossier Modal Trigger -->
+        <button onclick="openFullDossierModal()" class="w-full py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-600/50 rounded-lg text-xs font-mono font-semibold flex items-center justify-center space-x-2 transition">
+          <i class="fa-solid fa-chart-line text-cyan-400"></i>
+          <span>OPEN DETAILED CLINICAL RECORD</span>
+        </button>
+      </div>
+
+      <!-- SPECIES CENSUS SUMMARY CARD -->
+      <div class="tactical-glass rounded-xl p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-orbitron text-xs font-bold text-white flex items-center space-x-1.5">
+            <i class="fa-solid fa-paw text-cyan-400"></i>
+            <span>SANCTUARY POPULATION BREAKDOWN</span>
+          </h3>
+          <span class="text-[10px] font-mono text-slate-400">LIVE CENSUS</span>
+        </div>
+
+        <div class="space-y-2 text-xs font-mono">
+          <div>
+            <div class="flex justify-between text-slate-300 mb-0.5">
+              <span>African Elephant (Loxodonta)</span>
+              <span class="font-bold text-cyan-400">14</span>
+            </div>
+            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+              <div class="bg-cyan-400 h-full rounded-full" style="width: 45%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between text-slate-300 mb-0.5">
+              <span>Plains Zebra (Equus quagga)</span>
+              <span class="font-bold text-emerald-400">22</span>
+            </div>
+            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+              <div class="bg-emerald-400 h-full rounded-full" style="width: 70%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between text-slate-300 mb-0.5">
+              <span>African Lion (Panthera leo)</span>
+              <span class="font-bold text-amber-400">6</span>
+            </div>
+            <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+              <div class="bg-amber-400 h-full rounded-full" style="width: 20%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- CLINICAL DOSSIER FULL MODAL -->
+  <div id="dossierModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md hidden flex items-center justify-center p-4">
+    <div class="tactical-glass rounded-2xl max-w-2xl w-full border border-cyan-500/40 p-6 shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+      <div class="flex justify-between items-start pb-4 border-b border-slate-800">
+        <div>
+          <span class="text-xs font-mono text-cyan-400 font-bold tracking-wider uppercase">CLINICAL & BIOMETRIC DOSSIER</span>
+          <h2 class="text-xl font-orbitron font-bold text-white mt-0.5" id="modalTitle">Elephant #TRK-104 (Matriarch Herd A)</h2>
+        </div>
+        <button onclick="closeFullDossierModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+          <i class="fa-solid fa-xmark text-base"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3 my-4 font-mono text-xs">
+        <div class="bg-slate-900/90 p-3 rounded-lg border border-slate-800">
+          <div class="text-[10px] text-slate-400">FIRST LOGGED</div>
+          <div class="text-white font-bold mt-1">2026-08-14 06:12</div>
+        </div>
+        <div class="bg-slate-900/90 p-3 rounded-lg border border-slate-800">
+          <div class="text-[10px] text-slate-400">TOTAL DISTANCE</div>
+          <div class="text-white font-bold mt-1">14.82 km</div>
+        </div>
+        <div class="bg-slate-900/90 p-3 rounded-lg border border-slate-800">
+          <div class="text-[10px] text-slate-400">INJURY PROBABILITY</div>
+          <div class="text-emerald-400 font-bold mt-1">2.1% (Low)</div>
+        </div>
+      </div>
+
+      <div class="space-y-3 text-xs font-mono text-slate-300 mb-6">
+        <div class="p-3 bg-slate-900/60 rounded border border-slate-800">
+          <div class="text-cyan-400 font-bold mb-1">GAIT & CADENCE DIAGNOSTICS</div>
+          <p class="text-slate-400">
+            Temporal gait asymmetry index is within 0.02 nominal baseline. Bilateral step length is balanced. No limp, hitching, or abnormal deceleration detected during the past 4 hours.
+          </p>
+        </div>
+
+        <div class="p-3 bg-slate-900/60 rounded border border-slate-800">
+          <div class="text-cyan-400 font-bold mb-1">BEHAVIORAL HABITAT ALLOCATION</div>
+          <p class="text-slate-400">
+            Grazing & Feeding: 54% | Active Locomotion: 28% | Social Grooming: 11% | Resting: 7%. Feeding frequency indicates optimal forage abundance in Sector 4.
+          </p>
+        </div>
+      </div>
+
+      <div class="flex justify-end space-x-3">
+        <button onclick="closeFullDossierModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono rounded-lg text-xs transition">
+          CLOSE
+        </button>
+        <button onclick="downloadReport('pdf')" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-mono font-bold rounded-lg text-xs transition flex items-center space-x-1.5">
+          <i class="fa-solid fa-download"></i>
+          <span>EXPORT ANIMAL DOSSIER (PDF)</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SCRIPTS & INTERACTIVE ENGINE -->
+  <script>
+    // --------------------------------------------------------------------------
+    // Web Audio Tactical Alarm Synthesizer (No external sound files required)
+    // --------------------------------------------------------------------------
+    let audioCtx = null;
+    let audioEnabled = true;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playTacticalBeep(freq = 880, duration = 0.12, type = 'sine') {
+      if (!audioEnabled) return;
+      try {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {
+        console.warn("Audio Context init pending user interaction:", e);
+      }
+    }
+
+    function playAlarmSound() {
+      if (!audioEnabled) return;
+      playTacticalBeep(650, 0.18, 'sawtooth');
+      setTimeout(() => playTacticalBeep(880, 0.25, 'sawtooth'), 200);
+    }
+
+    function toggleAudio() {
+      audioEnabled = !audioEnabled;
+      const icon = document.getElementById('audioIcon');
+      const label = document.getElementById('audioLabel');
+      if (audioEnabled) {
+        icon.className = "fa-solid fa-volume-high text-emerald-400";
+        label.innerText = "AUDIO ON";
+        playTacticalBeep(1200, 0.1);
+      } else {
+        icon.className = "fa-solid fa-volume-xmark text-slate-500";
+        label.innerText = "AUDIO MUTED";
+      }
+    }
+
+    // --------------------------------------------------------------------------
+    // Sanctuary Clock & Live Telemetry Polling
+    // --------------------------------------------------------------------------
+    function updateClock() {
+      const now = new Date();
+      const timeStr = now.toISOString().substring(11, 19) + " UTC";
+      document.getElementById('clockTime').innerText = timeStr;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    async function pollSystemHealth() {
+      try {
+        const res = await fetch('/health');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.device && data.device.current_device_name) {
+            document.getElementById('gpuNameBadge').innerText = data.device.current_device_name + " (CUDA)";
+          }
+          if (data.database_connected) {
+            document.getElementById('dbStatus').innerText = "CONNECTED";
+            document.getElementById('dbStatus').className = "text-emerald-400 font-bold";
+          }
+        }
+      } catch (err) {
+        // Fallback gracefully if direct endpoint is initializing
+      }
+    }
+    setInterval(pollSystemHealth, 5000);
+    pollSystemHealth();
+
+    // --------------------------------------------------------------------------
+    // Simulated Animal Entities for Canvas & Radar Rendering
+    // --------------------------------------------------------------------------
+    const canvas = document.getElementById('surveillanceCanvas');
+    const ctx = canvas.getContext('2d');
+    let isStreamPlaying = true;
+    let isThermalMode = false;
+    let isNightVisionMode = false;
+    let isRecording = false;
+
+    // Live WebRTC Camera Stream Support
+    let liveMediaStream = null;
+    let isLiveCameraActive = false;
+    const liveVideoElement = document.createElement('video');
+    liveVideoElement.autoplay = true;
+    liveVideoElement.playsInline = true;
+    liveVideoElement.muted = true;
+
+    async function toggleLiveCamera() {
+      if (!isLiveCameraActive) {
+        try {
+          playTacticalBeep(1200, 0.1);
+          liveMediaStream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: false
+          });
+          liveVideoElement.srcObject = liveMediaStream;
+          await liveVideoElement.play();
+          isLiveCameraActive = true;
+          document.getElementById('btnLiveCamera').className = "px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold font-mono text-xs flex items-center space-x-2 transition shadow-lg shadow-red-500/30 animate-pulse";
+          document.getElementById('liveCameraLabel').innerText = "STOP LIVE MONITORING";
+          document.getElementById('liveCameraIcon').className = "fa-solid fa-video-slash";
+          document.getElementById('tickerText').innerText = "[LIVE RECON CAMERA ACTIVATED] Local webcam active at 1280x720 30FPS with real-time AI bounding box overlay.";
+        } catch (err) {
+          console.error("Camera access error:", err);
+          alert("Could not access local webcam: " + err.message + "\\nPlease verify camera device and browser permissions.");
+        }
+      } else {
+        if (liveMediaStream) {
+          liveMediaStream.getTracks().forEach(track => track.stop());
+          liveMediaStream = null;
+        }
+        isLiveCameraActive = false;
+        document.getElementById('btnLiveCamera').className = "px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold font-mono text-xs flex items-center space-x-2 transition shadow-lg shadow-emerald-500/30";
+        document.getElementById('liveCameraLabel').innerText = "TURN ON LIVE MONITORING (WEBCAM)";
+        document.getElementById('liveCameraIcon').className = "fa-solid fa-video";
+        playTacticalBeep(600, 0.1);
+      }
+    }
+
+    // Interactive Geo-Fence polygon vertices
+    let fenceVertices = [
+      { x: 100, y: 80 },
+      { x: 1180, y: 80 },
+      { x: 1180, y: 640 },
+      { x: 100, y: 640 }
+    ];
+
+    // Simulated Animal Agents
+    const animals = [
+      {
+        id: 104,
+        species: 'Elephant',
+        x: 450, y: 320,
+        vx: 0.8, vy: 0.2,
+        w: 120, h: 90,
+        speed: 1.2,
+        behavior: 'Eating',
+        stress: 0.12,
+        trail: [],
+        color: '#06b6d4',
+        rfid: 'RFID-982-A41'
+      },
+      {
+        id: 108,
+        species: 'Zebra',
+        x: 720, y: 440,
+        vx: 1.5, vy: -0.4,
+        w: 75, h: 60,
+        speed: 2.1,
+        behavior: 'Walking',
+        stress: 0.15,
+        trail: [],
+        color: '#10b981',
+        rfid: 'RFID-441-Z12'
+      },
+      {
+        id: 112,
+        species: 'Lion',
+        x: 220, y: 520,
+        vx: -0.5, vy: 0.3,
+        w: 80, h: 55,
+        speed: 0.9,
+        behavior: 'Resting',
+        stress: 0.08,
+        trail: [],
+        color: '#f59e0b',
+        rfid: 'RFID-110-L03'
+      },
+      {
+        id: 115,
+        species: 'Giraffe',
+        x: 950, y: 260,
+        vx: 0.4, vy: 0.8,
+        w: 90, h: 140,
+        speed: 1.4,
+        behavior: 'Walking',
+        stress: 0.11,
+        trail: [],
+        color: '#38bdf8',
+        rfid: 'RFID-772-G99'
+      }
+    ];
+
+    let activeAnimal = animals[0];
+
+    // --------------------------------------------------------------------------
+    // Main Surveillance Canvas Rendering Loop (60 FPS)
+    // --------------------------------------------------------------------------
+    function renderSurveillance() {
+      if (!isStreamPlaying) {
+        requestAnimationFrame(renderSurveillance);
+        return;
+      }
+
+      // 1. Draw Environmental or Live Camera Background
+      ctx.save();
+      if (isLiveCameraActive && liveVideoElement.readyState >= 2) {
+        ctx.drawImage(liveVideoElement, 0, 0, canvas.width, canvas.height);
+        if (isNightVisionMode) {
+          ctx.fillStyle = 'rgba(0, 255, 60, 0.25)';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        } else if (isThermalMode) {
+          ctx.fillStyle = 'rgba(255, 80, 0, 0.25)';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+      } else {
+        if (isNightVisionMode) {
+          ctx.fillStyle = '#061a0d'; // Night-vision phosphor dark green
+        } else if (isThermalMode) {
+          ctx.fillStyle = '#180728'; // Thermal ironbow dark violet
+        } else {
+          ctx.fillStyle = '#0b1320'; // Savanna night/recon slate
+        }
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      // Subtle terrain grid & waterhole texture
+      ctx.strokeStyle = isNightVisionMode ? 'rgba(0, 255, 100, 0.08)' : (isThermalMode ? 'rgba(255, 100, 50, 0.08)' : 'rgba(56, 189, 248, 0.06)');
+      ctx.lineWidth = 1;
+      for (let x = 0; x < canvas.width; x += 64) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+      }
+      for (let y = 0; y < canvas.height; y += 64) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+      }
+
+      // Draw Virtual Geo-Fence Perimeter
+      ctx.beginPath();
+      ctx.moveTo(fenceVertices[0].x, fenceVertices[0].y);
+      for (let i = 1; i < fenceVertices.length; i++) {
+        ctx.lineTo(fenceVertices[i].x, fenceVertices[i].y);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = 'rgba(239, 68, 68, 0.7)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 6]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.03)';
+      ctx.fill();
+
+      // Label on Fence
+      ctx.font = 'bold 12px "JetBrains Mono"';
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.8)';
+      ctx.fillText('[GEO-FENCE ZONE 04 PERIMETER]', fenceVertices[0].x + 10, fenceVertices[0].y + 20);
+
+      // 2. Update & Draw Animal Entities
+      animals.forEach(a => {
+        // Physics update
+        a.x += a.vx;
+        a.y += a.vy;
+
+        // Boundary bounce
+        if (a.x < 120 || a.x > 1150) a.vx *= -1;
+        if (a.y < 100 || a.y > 620) a.vy *= -1;
+
+        // Trail accumulator
+        a.trail.push({ x: a.x + a.w / 2, y: a.y + a.h / 2 });
+        if (a.trail.length > 25) a.trail.shift();
+
+        // Draw Motion Trail Ribbon
+        if (a.trail.length > 1) {
+          ctx.beginPath();
+          ctx.moveTo(a.trail[0].x, a.trail[0].y);
+          for (let i = 1; i < a.trail.length; i++) {
+            ctx.lineTo(a.trail[i].x, a.trail[i].y);
+          }
+          ctx.strokeStyle = isNightVisionMode ? 'rgba(0, 255, 100, 0.4)' : a.color;
+          ctx.lineWidth = 2.5;
+          ctx.stroke();
+        }
+
+        // Animal Body Representation (Thermal silhouette or bounding box)
+        let boxColor = isNightVisionMode ? '#00ff66' : (isThermalMode ? '#ffaa00' : a.color);
+
+        // Animal silhouette
+        ctx.save();
+        ctx.translate(a.x + a.w / 2, a.y + a.h / 2);
+        ctx.fillStyle = isThermalMode ? 'rgba(255, 70, 0, 0.7)' : (isNightVisionMode ? 'rgba(0, 255, 100, 0.4)' : 'rgba(30, 58, 95, 0.6)');
+        ctx.beginPath();
+        ctx.ellipse(0, 0, a.w / 2.2, a.h / 2.4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // High-Tech Bounding Box (Corner brackets)
+        ctx.strokeStyle = boxColor;
+        ctx.lineWidth = 2;
+        const cornerLen = 14;
+
+        // Top-left
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y + cornerLen);
+        ctx.lineTo(a.x, a.y);
+        ctx.lineTo(a.x + cornerLen, a.y);
+        ctx.stroke();
+
+        // Top-right
+        ctx.beginPath();
+        ctx.moveTo(a.x + a.w - cornerLen, a.y);
+        ctx.lineTo(a.x + a.w);
+        ctx.lineTo(a.x + a.w, a.y + cornerLen);
+        ctx.stroke();
+
+        // Bottom-left
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y + a.h - cornerLen);
+        ctx.lineTo(a.x, a.y + a.h);
+        ctx.lineTo(a.x + cornerLen, a.y + a.h);
+        ctx.stroke();
+
+        // Bottom-right
+        ctx.beginPath();
+        ctx.moveTo(a.x + a.w - cornerLen, a.y + a.h);
+        ctx.lineTo(a.x + a.w, a.y + a.h);
+        ctx.lineTo(a.x + a.w, a.y + a.h - cornerLen);
+        ctx.stroke();
+
+        // Label Badge
+        const tag = `#TRK-${a.id} [${a.species}] ${a.behavior} (${(a.speed).toFixed(1)}m/s)`;
+        ctx.font = 'bold 11px "JetBrains Mono"';
+        const tw = ctx.measureText(tag).width;
+
+        ctx.fillStyle = 'rgba(6, 9, 14, 0.85)';
+        ctx.fillRect(a.x, a.y - 20, tw + 12, 18);
+        ctx.strokeStyle = boxColor;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(a.x, a.y - 20, tw + 12, 18);
+
+        ctx.fillStyle = boxColor;
+        ctx.fillText(tag, a.x + 6, a.y - 6);
+      });
+
+      ctx.restore();
+      requestAnimationFrame(renderSurveillance);
+    }
+    renderSurveillance();
+
+    // --------------------------------------------------------------------------
+    // 2D Tactical Radar Sweep Loop
+    // --------------------------------------------------------------------------
+    const radarCanvas = document.getElementById('radarCanvas');
+    const rCtx = radarCanvas.getContext('2d');
+    let radarAngle = 0;
+
+    function renderRadar() {
+      rCtx.clearRect(0, 0, radarCanvas.width, radarCanvas.height);
+      const cx = radarCanvas.width / 2;
+      const cy = radarCanvas.height / 2;
+      const radius = cx - 8;
+
+      // Range rings
+      rCtx.strokeStyle = 'rgba(0, 255, 102, 0.25)';
+      rCtx.lineWidth = 1;
+      [0.25, 0.5, 0.75, 1.0].forEach(frac => {
+        rCtx.beginPath();
+        rCtx.arc(cx, cy, radius * frac, 0, Math.PI * 2);
+        rCtx.stroke();
+      });
+
+      // Crosshairs
+      rCtx.beginPath();
+      rCtx.moveTo(cx, 8); rCtx.lineTo(cx, radarCanvas.height - 8);
+      rCtx.moveTo(8, cy); rCtx.lineTo(radarCanvas.width - 8, cy);
+      rCtx.stroke();
+
+      // Animal radar blips mapped from canvas coordinates
+      animals.forEach(a => {
+        const rx = cx + (a.x - canvas.width / 2) * (radius / (canvas.width / 2));
+        const ry = cy + (a.y - canvas.height / 2) * (radius / (canvas.height / 2));
+
+        rCtx.beginPath();
+        rCtx.arc(rx, ry, 3.5, 0, Math.PI * 2);
+        rCtx.fillStyle = '#00ff66';
+        rCtx.shadowColor = '#00ff66';
+        rCtx.shadowBlur = 8;
+        rCtx.fill();
+        rCtx.shadowBlur = 0;
+      });
+
+      requestAnimationFrame(renderRadar);
+    }
+    renderRadar();
+
+    // --------------------------------------------------------------------------
+    // Chart.js Kinematic Telemetry Live Chart
+    // --------------------------------------------------------------------------
+    let kinematicChart = null;
+    function initKinematicChart() {
+      const chartCtx = document.getElementById('kinematicChart').getContext('2d');
+      kinematicChart = new Chart(chartCtx, {
+        type: 'line',
+        data: {
+          labels: ['-25s', '-20s', '-15s', '-10s', '-5s', 'Now'],
+          datasets: [{
+            label: 'Speed (m/s)',
+            data: [1.1, 1.4, 1.2, 1.6, 1.5, 1.2],
+            borderColor: '#06b6d4',
+            backgroundColor: 'rgba(6, 182, 212, 0.1)',
+            borderWidth: 2,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 2,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 9 } } },
+            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#64748b', font: { size: 9 } } }
+          }
+        }
+      });
+    }
+    initKinematicChart();
+
+    // Periodic live telemetry jitter
+    setInterval(() => {
+      if (kinematicChart) {
+        const nextSpeed = +(1.0 + Math.random() * 1.5).toFixed(1);
+        kinematicChart.data.datasets[0].data.shift();
+        kinematicChart.data.datasets[0].data.push(nextSpeed);
+        kinematicChart.update('none');
+        document.getElementById('avgSpeedVal').innerText = nextSpeed;
+      }
+    }, 2000);
+
+    // --------------------------------------------------------------------------
+    // User Interactions & Mode Toggles
+    // --------------------------------------------------------------------------
+    function switchCamera(camId) {
+      document.querySelectorAll('.cam-tab').forEach(b => {
+        b.className = "cam-tab px-3 py-1.5 rounded-lg text-xs font-mono font-medium flex items-center space-x-2 text-slate-400 hover:text-white hover:bg-slate-800/60 transition";
+      });
+
+      const tab = document.getElementById(`tab-${camId}`);
+      if (tab) {
+        tab.className = "cam-tab px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center space-x-2 bg-cyan-600/30 text-cyan-300 border border-cyan-400/50 transition";
+      }
+
+      const hud = document.getElementById('droneHudOverlay');
+      if (camId === 'drone') {
+        hud.style.display = 'flex';
+      } else {
+        hud.style.display = 'none';
+      }
+
+      playTacticalBeep(980, 0.08);
+    }
+
+    function toggleThermal() {
+      isThermalMode = !isThermalMode;
+      if (isThermalMode) isNightVisionMode = false;
+      document.getElementById('btnThermal').className = isThermalMode ?
+        "px-2.5 py-1 rounded bg-amber-500/20 text-amber-400 border border-amber-500/50 transition flex items-center space-x-1" :
+        "px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:text-amber-400 border border-slate-700 transition flex items-center space-x-1";
+      playTacticalBeep(isThermalMode ? 1050 : 600, 0.1);
+    }
+
+    function toggleNightVision() {
+      isNightVisionMode = !isNightVisionMode;
+      if (isNightVisionMode) isThermalMode = false;
+      document.getElementById('btnNightVision').className = isNightVisionMode ?
+        "px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 transition flex items-center space-x-1" :
+        "px-2.5 py-1 rounded bg-slate-800 text-slate-300 hover:text-emerald-400 border border-slate-700 transition flex items-center space-x-1";
+      playTacticalBeep(isNightVisionMode ? 1150 : 700, 0.1);
+    }
+
+    function toggleStreamPlay() {
+      isStreamPlaying = !isStreamPlaying;
+      document.getElementById('playIcon').className = isStreamPlaying ? "fa-solid fa-pause text-base" : "fa-solid fa-play text-base text-emerald-400";
+    }
+
+    function toggleRecording() {
+      isRecording = !isRecording;
+      const dot = document.getElementById('recDot');
+      const text = document.getElementById('recText');
+      if (isRecording) {
+        dot.className = "fa-solid fa-circle text-red-500 text-xs animate-ping";
+        text.innerText = "RECORDING...";
+        playTacticalBeep(1400, 0.2);
+      } else {
+        dot.className = "fa-solid fa-circle text-red-500 text-xs";
+        text.innerText = "REC";
+        playTacticalBeep(600, 0.15);
+      }
+    }
+
+    function takeSnapshot() {
+      playTacticalBeep(1200, 0.05);
+      const link = document.createElement('a');
+      link.download = `wildlife_recon_${Date.now()}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    function toggleFullscreen() {
+      const container = document.getElementById('videoContainer');
+      if (!document.fullscreenElement) {
+        container.requestFullscreen().catch(err => alert(err.message));
+      } else {
+        document.exitFullscreen();
+      }
+    }
+
+    function setFlightMode(mode) {
+      playTacticalBeep(1100, 0.1);
+      const hudMode = document.querySelector('#droneHudOverlay div:last-child div span');
+      if (hudMode) hudMode.innerText = mode;
+      document.getElementById('tickerText').innerText = `[DRONE FLIGHT COMMAND] Autopilot transitioned to ${mode} mode. Waypoint sequence confirmed.`;
+    }
+
+    // --------------------------------------------------------------------------
+    // Test Breach Simulation
+    // --------------------------------------------------------------------------
+    function simulateTestBreach() {
+      playAlarmSound();
+      const container = document.getElementById('videoContainer');
+      container.classList.add('alarm-active');
+      document.getElementById('tickerText').innerText = `[CRITICAL ALERT] GEO-FENCE BREACH DETECTED: Elephant #TRK-104 crossed Sector 4 perimeter at 16:58:12 UTC! Immediate ranger dispatch recommended.`;
+      document.getElementById('radarBreachCount').innerText = "01";
+
+      setTimeout(() => {
+        container.classList.remove('alarm-active');
+      }, 7000);
+    }
+
+    function acknowledgeAlerts() {
+      document.getElementById('videoContainer').classList.remove('alarm-active');
+      document.getElementById('tickerText').innerText = `[ALL CLEAR] Alerts acknowledged by tactical operator. Monitoring normal telemetry.`;
+      document.getElementById('radarBreachCount').innerText = "00";
+      playTacticalBeep(880, 0.1);
+    }
+
+    // --------------------------------------------------------------------------
+    // Animal Dossier Modal
+    // --------------------------------------------------------------------------
+    function openFullDossierModal() {
+      playTacticalBeep(950, 0.08);
+      document.getElementById('dossierModal').classList.remove('hidden');
+    }
+
+    function closeFullDossierModal() {
+      document.getElementById('dossierModal').classList.add('hidden');
+    }
+
+    // --------------------------------------------------------------------------
+    // Automated Report Download (Calls FastAPI backend /api/reports/generate)
+    // --------------------------------------------------------------------------
+    async function downloadReport(fmt) {
+      playTacticalBeep(1200, 0.1);
+      const url = `/reports/generate?report_type=daily&format=${fmt}`;
+      window.open(url, '_blank');
+    }
+
+    // Canvas click to select closest animal
+    canvas.addEventListener('click', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const clickY = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+      let closest = animals[0];
+      let minDist = 9999;
+      animals.forEach(a => {
+        const dist = Math.hypot(clickX - (a.x + a.w/2), clickY - (a.y + a.h/2));
+        if (dist < minDist) {
+          minDist = dist;
+          closest = a;
+        }
+      });
+
+      if (minDist < 120) {
+        activeAnimal = closest;
+        document.getElementById('dossierTrackUid').innerText = `TRK-${closest.id} (${closest.species.toUpperCase()})`;
+        document.getElementById('dossierRfid').innerText = closest.rfid;
+        document.getElementById('modalTitle').innerText = `${closest.species} #TRK-${closest.id} Clinical Record`;
+        playTacticalBeep(1300, 0.1);
+      }
+    });
+  </script>
+
+</body>
+</html>
