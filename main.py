@@ -83,11 +83,11 @@ def run_api_server(port: Optional[int] = None):
 
 
 def run_dashboard(port: Optional[int] = None):
-    """Launches the Streamlit executive dashboard."""
+    """Launches the Streamlit executive dashboard on Port 3000."""
     dashboard_script = os.path.abspath(os.path.join(os.path.dirname(__file__), "dashboard", "app.py"))
-    port_arg = ["--server.port", str(port)] if port else []
-    cmd = [sys.executable, "-m", "streamlit", "run", dashboard_script, "--server.headless", "true"] + port_arg
-    logger.info(f"Launching Streamlit Executive Dashboard: {' '.join(cmd)}")
+    port_to_use = port or 3000
+    cmd = [sys.executable, "-m", "streamlit", "run", dashboard_script, "--server.port", str(port_to_use), "--server.headless", "true"]
+    logger.info(f"Launching Wildlife Frontend on Port {port_to_use}: {' '.join(cmd)}")
     subprocess.run(cmd)
 
 

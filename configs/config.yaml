@@ -162,5 +162,6 @@ api:
   port: 8000
 
 dashboard:
+  port: 3000
   refresh_interval_seconds: 3
   theme: "dark"

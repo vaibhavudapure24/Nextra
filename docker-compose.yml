@@ -36,13 +36,13 @@ services:
       timeout: 5s
       retries: 5
 
-  dashboard:
+  backend:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: wildlife_dashboard
+    container_name: wildlife_backend
     restart: unless-stopped
-    command: ["streamlit", "run", "dashboard/app.py", "--server.address=0.0.0.0", "--server.port=8501"]
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000"]
     environment:
       DATABASE__HOST: postgres
       DATABASE__PORT: "5432"
@@ -51,16 +51,40 @@ services:
       DATABASE__PASSWORD: postgres
       DETECTION__DEVICE: cpu
     ports:
-      - "8501:8501"
+      - "8000:8000"
     volumes:
       - ./models:/app/models
       - ./outputs:/app/outputs
-      - ./datasets:/app/datasets
       - ./configs:/app/configs
-      - ./runs:/app/runs
     depends_on:
       postgres:
         condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wildlife_frontend
+    restart: unless-stopped
+    command: ["streamlit", "run", "dashboard/app.py", "--server.address=0.0.0.0", "--server.port=3000"]
+    environment:
+      API_URL: "http://backend:8000"
+      DATABASE__HOST: postgres
+      DATABASE__PORT: "5432"
+      DATABASE__NAME: wildlife_db
+      DATABASE__USER: postgres
+      DATABASE__PASSWORD: postgres
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./models:/app/models
+      - ./outputs:/app/outputs
+      - ./configs:/app/configs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      backend:
+        condition: service_started
     # devices:
     #   - "/dev/video0:/dev/video0"   # uncomment on Linux to pass through a USB webcam
 
