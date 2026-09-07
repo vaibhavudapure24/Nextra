@@ -12,7 +12,6 @@ from sqlalchemy import text
 from database.database import get_db
 from database.models import HealthRecord
 from database.crud import list_animals, get_latest_health
-from utils.device import get_device_info
 from health.health_monitor import HealthMonitor
 
 router = APIRouter(prefix="", tags=["Health"])
@@ -23,8 +22,12 @@ _health_monitor = HealthMonitor()
 @router.get("/health")
 def get_system_health(db: Session = Depends(get_db)):
     """
-    Returns system health status: database connectivity, hardware acceleration, and system uptime.
+    Returns API operational status and basic health.
     """
+    status = {
+        "api": "healthy",
+        "timestamp": time.time()
+    }
     db_ok = False
     try:
         db.execute(text("SELECT 1"))
@@ -32,12 +35,9 @@ def get_system_health(db: Session = Depends(get_db)):
     except Exception:
         db_ok = False
 
-    device_info = get_device_info()
-
     return {
         "status": "healthy" if db_ok else "degraded",
         "database_connected": db_ok,
-        "device": device_info,
         "service": "AI Wildlife Animal Monitoring Backend",
         "version": "1.0.0",
         "timestamp": time.time(),

@@ -1,7 +1,4 @@
 """
 FastAPI Application Module.
 """
-
-from api.main import app
-
-__all__ = ["app"]
+# Empty to prevent cascading ML imports when loading submodules.
