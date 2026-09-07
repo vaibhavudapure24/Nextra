@@ -32,7 +32,8 @@ else:
         f"@{_db_cfg.host}:{_db_cfg.port}/{_db_cfg.name}"
     )
 
-SQLITE_FALLBACK_URL = "sqlite:///wildlife_monitoring.db"
+# Vercel serverless uses read-only filesystems, so we must write SQLite to /tmp/
+SQLITE_FALLBACK_URL = "sqlite:////tmp/wildlife_monitoring.db"
 
 # Create engine with fallback logic
 engine = None

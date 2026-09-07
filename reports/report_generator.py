@@ -23,7 +23,12 @@ class ReportGenerator:
     """
     def __init__(self, output_dir: str = "outputs/reports"):
         self.output_dir = output_dir
-        os.makedirs(self.output_dir, exist_ok=True)
+        try:
+            os.makedirs(self.output_dir, exist_ok=True)
+        except OSError:
+            # Fallback for Vercel Serverless Read-Only File System
+            self.output_dir = "/tmp/reports"
+            os.makedirs(self.output_dir, exist_ok=True)
 
     def generate_report(
         self,
