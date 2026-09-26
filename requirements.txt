@@ -1,6 +1,7 @@
 # ==============================================================================
-# AI Wildlife Monitoring System - Vercel Database API Dependencies
-# Target: Serverless Deployment (No Heavy ML/AI)
+# AI Wildlife Monitoring System - Vercel Serverless API Dependencies
+# Target: Serverless Deployment (Lightweight, fits under Vercel 250MB limit)
+# For full local / GPU inference with YOLO & PyTorch, use requirements-local.txt
 # ==============================================================================
 
 # ---- API ----
@@ -15,9 +16,10 @@ SQLAlchemy==2.0.32
 psycopg2-binary==2.9.9
 alembic==1.13.2
 
-# ---- Core / Utilities ----
+# ---- Core & Utilities ----
 python-dotenv==1.0.1
+PyYAML==6.0.2
 loguru==0.7.2
 APScheduler==3.10.4
-
-# (Removed torch, opencv, ultralytics, streamlit for Vercel 250MB limit)
+numpy>=1.26.4
+reportlab==4.2.2

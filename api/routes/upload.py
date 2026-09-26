@@ -28,7 +28,11 @@ async def upload_media_file(
 
     # Determine destination folder
     dest_dir = "outputs/videos" if is_video else "outputs/snapshots"
-    os.makedirs(dest_dir, exist_ok=True)
+    try:
+        os.makedirs(dest_dir, exist_ok=True)
+    except OSError:
+        dest_dir = os.path.join("/tmp", dest_dir)
+        os.makedirs(dest_dir, exist_ok=True)
     dest_path = os.path.join(dest_dir, sanitized_name)
 
     # Read and validate size in chunks
