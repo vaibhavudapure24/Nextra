@@ -42,9 +42,6 @@ def _configure_once() -> None:
         rotation = "10 MB"
         retention = "30 days"
 
-    log_dir = Path(log_dir)
-    log_dir.mkdir(parents=True, exist_ok=True)
-
     _loguru_logger.remove()  # remove default handler to avoid duplicate stdout logs
 
     _loguru_logger.add(
@@ -59,25 +56,33 @@ def _configure_once() -> None:
         ),
     )
 
-    _loguru_logger.add(
-        str(log_dir / "wildlife_system_{time:YYYY-MM-DD}.log"),
-        level=level,
-        rotation=rotation,
-        retention=retention,
-        encoding="utf-8",
-        enqueue=True,       # thread/process-safe
-        backtrace=True,
-        diagnose=False,
-    )
+    try:
+        log_dir = Path(log_dir)
+        log_dir.mkdir(parents=True, exist_ok=True)
 
-    _loguru_logger.add(
-        str(log_dir / "errors_{time:YYYY-MM-DD}.log"),
-        level="ERROR",
-        rotation=rotation,
-        retention=retention,
-        encoding="utf-8",
-        enqueue=True,
-    )
+        _loguru_logger.add(
+            str(log_dir / "wildlife_system_{time:YYYY-MM-DD}.log"),
+            level=level,
+            rotation=rotation,
+            retention=retention,
+            encoding="utf-8",
+            enqueue=True,       # thread/process-safe
+            backtrace=True,
+            diagnose=False,
+        )
+
+        _loguru_logger.add(
+            str(log_dir / "errors_{time:YYYY-MM-DD}.log"),
+            level="ERROR",
+            rotation=rotation,
+            retention=retention,
+            encoding="utf-8",
+            enqueue=True,
+        )
+    except (OSError, PermissionError):
+        # In serverless environments (e.g. Vercel, AWS Lambda), the filesystem is read-only.
+        # Console logging (sys.stdout) configured above captures all log streams.
+        pass
 
     _CONFIGURED = True
 

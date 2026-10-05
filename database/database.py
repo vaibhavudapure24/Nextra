@@ -38,7 +38,11 @@ SQLITE_FALLBACK_URL = "sqlite:////tmp/wildlife_monitoring.db"
 # Create engine with fallback logic
 engine = None
 try:
-    if "sqlite" in DEFAULT_DATABASE_URL:
+    if os.getenv("VERCEL") and not ENV_DB_URL:
+        # In Vercel serverless without explicit external DATABASE_URL, skip PostgreSQL localhost timeout
+        engine = create_engine(SQLITE_FALLBACK_URL, connect_args={"check_same_thread": False})
+        logger.info("Running in Vercel Serverless environment: Using SQLite fallback")
+    elif "sqlite" in DEFAULT_DATABASE_URL:
         engine = create_engine(DEFAULT_DATABASE_URL, connect_args={"check_same_thread": False})
         logger.info(f"Using SQLite database: {DEFAULT_DATABASE_URL}")
     else:
