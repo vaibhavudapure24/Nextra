@@ -4,7 +4,7 @@ CSV report generation utility using pandas.
 
 from typing import Dict, Any, List
 import os
-import pandas as pd
+import csv
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -51,7 +51,11 @@ class CSVReportGenerator:
                 "Details": a.get("message", ""),
             })
 
-        df = pd.DataFrame(rows)
-        df.to_csv(output_path, index=False)
+        fieldnames = ["Section", "Key", "Value", "Details"]
+        with open(output_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(rows)
+
         logger.info(f"Generated CSV report: {output_path}")
         return output_path
