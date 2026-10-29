@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Secrets and local config
+.env
+*.pem
+*.key
+
+# Logs and outputs
+logs/*.log
+outputs/detections/*
+outputs/videos/*
+outputs/snapshots/*
+outputs/heatmaps/*
+outputs/reports/*
+!outputs/reports/.gitkeep
+
+# SQLite database fallback
+*.db
+*.sqlite
+*.sqlite3
+
+# Models cache & large weights
+models/*.pt
+models/detection/*.pt
+!models/detection/.gitkeep
+models/behavior/*.pt
+models/anomaly/*.pt
+models/health/*.pt
+models/classification/*.pt
+
+# OS
+.DS_Store
+Thumbs.db
